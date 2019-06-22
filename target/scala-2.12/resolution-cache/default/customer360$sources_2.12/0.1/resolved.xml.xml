@@ -4,7 +4,7 @@
 		module="customer360$sources_2.12"
 		revision="0.1"
 		status="integration"
-		publication="20190521110348"
+		publication="20190612171241"
 	/>
 	<configurations>
 		<conf name="default" visibility="public" description=""/>
