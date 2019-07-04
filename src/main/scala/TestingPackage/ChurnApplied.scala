@@ -11,12 +11,13 @@ object ChurnApplied {
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
       .setAppName("Logistic Regression test")
+      .setMaster("local[*]")
 
     val sc = new SparkContext(conf)
     sc.setLogLevel("ERROR")
     val sqlContext = new SQLContext(sc)
 
-   val customerDataDF = sqlContext.read.format("csv")
+    val customerDataDF = sqlContext.read.format("csv")
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")

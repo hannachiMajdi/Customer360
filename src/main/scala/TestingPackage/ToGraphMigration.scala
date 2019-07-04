@@ -12,10 +12,9 @@ object ToGraphMigration {
 
   def main(args : Array[String]): Unit = {
     var conf = new SparkConf().setAppName("ToGraphMigration").setMaster("local[*]")
-    conf.set("es.index.auto.create", "true")
-    conf.set("es.nodes", "127.0.0.1")
-    conf.set("es.port","9200")
+
     val sc = new SparkContext(conf)
+    sc.setLogLevel("ERROR")
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
 
@@ -25,7 +24,7 @@ object ToGraphMigration {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\data\\CLI_GTI_GeneriquesTiers.csv")
+      .load("src\\SourceData\\CLI_GTI_GeneriquesTiers.csv")
 
       //Suppression des autres colonnes
       .drop("GTI_CodSociete")
@@ -51,7 +50,7 @@ object ToGraphMigration {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\data\\CRM_V_CONTACTS_v2.csv")
+      .load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
 
 
       //Changement des noms de colonnes
@@ -62,16 +61,14 @@ object ToGraphMigration {
 
     //  val customerDF = crmContactDF.join(bqClientDF, crmContactDF.col("IdClient") === bqClientDF.col("IdClient"))
     val customerDF = crmContactDF.join(bqClientDF, "IdClient")
-    customerDF.printSchema()
-    customerDF.describe().show()
-    val c = customerDF.rdd.count()
+
 
 
     val crmLienDF = sqlContext.read.format("csv")
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\data\\ContactRelation_OBP_CRM.csv")
+      .load("src\\SourceData\\ContactRelation_OBP_CRM.csv")
       //Changement des noms de colonnes
       .withColumnRenamed("ContactId origine", "ContactId_origine")
       .withColumnRenamed("ContactId Cible", "ContactId_cible")
@@ -98,12 +95,14 @@ object ToGraphMigration {
     val defaultStation = "missing station"
     val relationGraph = Graph(customerVertices, lienEdges)
 
-    relationGraph.cache()
 
-    println("Total Number of customers: " + customerVertices.count() +
-    " Total Number of vertices: " + relationGraph.numVertices+
-    "Total Number of relation: " + relationGraph.numEdges+
-    "Total Number of Trips in Original Data: " + crmLienDF.count)
+
+    val ranks = relationGraph.pageRank(0.0001).vertices
+    ranks
+      .join(customerVertices)
+      .sortBy(_._2._1, ascending=false) // sort by the rank
+      .take(10) // get the top 10
+      .foreach(x => println(x._2._2))
 
 
   }
