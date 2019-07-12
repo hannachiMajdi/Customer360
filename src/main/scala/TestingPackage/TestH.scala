@@ -13,8 +13,30 @@ object TestH {
       sc.setLogLevel("ERROR")
       val sqlContext = new SQLContext(sc)
 
+      val extraitDF= sqlContext.read.format("csv")
+        .option("header", "true")
+        .option("delimiter",",")
+        .option("inferSchema", "true")
+        .load("src\\SourceData\\Churn_Modelling.csv")
+        .withColumnRenamed("RowNumber","Index")
 
-      println("Hello")
+      val amedDF= sqlContext.read.format("csv")
+        .option("header", "true")
+        .option("delimiter",";")
+        .option("inferSchema", "true")
+        .load("src\\SourceData\\amed.csv")
+
+      val jointureDF = amedDF.join(extraitDF,"Index")
+
+
+      jointureDF.printSchema()
+      jointureDF
+        .repartition(1)
+        .write
+        .format("com.databricks.spark.csv")
+        .option("header", "true")
+        .option("delimiter",";")
+        .save("Ahmed")
     }
 }
 
