@@ -6,3 +6,7 @@ GeneratedData/
 SourceData/
 target/
 project/
+*.pbix
+*.csv
+*.crc
+*_SUCCESS
