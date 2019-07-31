@@ -12,6 +12,6 @@ libraryDependencies += "org.apache.spark" %% "spark-graphx" % "2.4.0"
 
 libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.4.0"
 
-//libraryDependencies += "org.elasticsearch" % "elasticsearch-hadoop" % "7.0.0"
+libraryDependencies += "org.elasticsearch" % "elasticsearch-hadoop" % "7.2.1"
 
 
