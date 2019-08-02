@@ -1,9 +1,11 @@
 package DWPackage
 
-import org.apache.spark.sql.{DataFrame, SQLContext,functions}
+import java.util.Calendar
+
+import org.apache.spark.sql.{DataFrame, SQLContext, functions}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.elasticsearch.spark.sql._
-import org.apache.spark.sql.functions.lower
+import org.apache.spark.sql.functions.{abs, lower, when}
 
 object DimensionClient {
 
@@ -29,6 +31,9 @@ object DimensionClient {
 
     import sqlContext.implicits._
 
+    val cal = Calendar.getInstance()
+    val date = cal.get(Calendar.DATE)
+    val Year = cal.get(Calendar.YEAR)
     //src\TargetData\RefProduit
     val DataDF = sqlContext.read.format("csv")
       .option("header", "true")
@@ -57,7 +62,7 @@ object DimensionClient {
           .load("src\\SourceData\\CLI_GTI_GeneriquesTiers.csv"), "GTI_CodTiers"), "GTI_CodTiers")
       .filter($"GTI_CodTiers".isNotNull)
       .select(
-        lower($"GTI_CodTiers").as("CodTiers"),
+        $"GTI_CodTiers".as("CodTiers"),
         lower($"Status").as("Status"),
         lower($"NomComplet").as("NomComplet"),
         lower($"PaysNaissance").as("PaysNaissance"),
@@ -69,7 +74,9 @@ object DimensionClient {
         lower($"profession").as("Profession"),
         lower($"DepartementResidence").as("DepartementResidence")
       )
-        .na.drop()
+      .withColumn("Age", when($"DateNaissanceOuCreation" >= 1900 , abs($"DateNaissanceOuCreation" - Year)).otherwise(65))
+
+      .na.drop()
         .distinct()
     DataDF.printSchema()
     DataDF.describe().show()

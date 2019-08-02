@@ -32,7 +32,7 @@ object ChurnRegression {
       .option("header", "true")
       .option("delimiter", ",")
       .option("inferSchema", "true")
-      .load("src\\data\\Churn_Modelling.csv")
+      .load("src\\SourceData\\Churn_Modelling.csv")
       .drop("RowNumber", "CustomerId", "Surname")
       .withColumnRenamed("Exited","label")
       .na.drop()

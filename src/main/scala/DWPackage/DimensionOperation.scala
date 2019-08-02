@@ -36,7 +36,7 @@ object DimensionOperation {
       .option("inferSchema", "true")
       .load("src\\SourceData\\CRO_CRO_CROD.csv")
       .select(
-        lower($"CRO_CodOperation").as("CodOperation"),
+        $"CRO_CodOperation".as("CodOperation"),
         lower($"CRO_LibOperation").as("LibOperation")
       )
         .na.drop()

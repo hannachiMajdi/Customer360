@@ -40,7 +40,7 @@ object DimensionInstrument {
         lower($"KW02_Libelle").as("Libelle"),
         lower($"GIN_LibInstrument").as("LibInstrument"),
         lower($"GIN_LibEmetteur").as("LibEmetteur"),
-        lower($"GIN_CodPaysEmission").as("CodPaysEmission")
+        $"GIN_CodPaysEmission".as("CodPaysEmission")
       )
         .na.drop()
         .distinct()

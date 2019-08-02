@@ -42,19 +42,20 @@ object FaitInteraction {
           .load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
           .select(
             lower($"Id").as("contactId"),
-            lower($"code2").as("FK_CodTiers")
+            $"code2".as("FK_CodTiers")
 
           ),"contactId"
       )
       .select(
-        lower($"FK_CodTiers"),
-        lower($"ActivityType"),
+        $"FK_CodTiers",
+        $"ActivityType",
        // lower($"CRO_Dateffet").as("Dateffet"),
         substring_index(lower(col("ActivityDate")), " ", 1).as("date")
       )
         .withColumn("FK_Date",regexp_replace($"date" , lit("-"), lit("" )))
+      .withColumn("FK_Activity",expr("substring(ActivityType, 1, 2)"))
        .na.drop()
-        .drop("date")
+        .drop("date","ActivityType")
 
 
 

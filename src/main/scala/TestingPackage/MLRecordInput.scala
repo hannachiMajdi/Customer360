@@ -57,7 +57,6 @@ object MLRecordInput {
         "Churn"
       )
       .withColumn("age", when($"DatNaissanceOuCreation" >= 1900 , abs($"DatNaissanceOuCreation" - Year)).otherwise(65))
-
       .na.fill(0.0)
 
 

@@ -35,16 +35,18 @@ object FaitCompteActivity {
       .option("inferSchema", "true")
       .load("src\\SourceData\\MEN_GCO_GeneriquesComptes.csv")
       .select(
-        lower($"GCO_AnMois"+"01").as("FK_Date"),
-        lower($"GCO_CodCompte").as("FK_CodCompte"),
-        lower($"GCO_CodProduit").as("FK_CodProduit"),
+
+        lower(concat($"GCO_AnMois".cast("String"),lit("01"))).as("FK_Date"),
+        $"GCO_CodCompte".as("FK_CodCompte"),
+        $"GCO_CodProduit".as("CodProduit"),
         lower($"GCO_IsOuvert").as("IsOuvert"),
         lower($"GCO_IsAsv").as("IsAsv"),
         lower($"GCO_LibEtatCompte").as("LibEtatCompte"),
         lower($"GCO_IsNanti").as("IsNanti")
        // lower($"CRO_Dateffet").as("Dateffet"),
       )
-       .na.drop()
+      .withColumn("FK_CodProduit",regexp_replace($"CodProduit" , lit("NULL"), lit("cbcc" )))
+       .drop("CodProduit")
 
 
 
@@ -58,6 +60,8 @@ object FaitCompteActivity {
       .option("header", "true")
       .option("delimiter", ";")
       .save("src\\DW\\dw_fait_compteactivity")
+
+
   }
 }
 

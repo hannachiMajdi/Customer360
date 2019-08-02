@@ -92,11 +92,11 @@ object DataFramesIdentification {
 
 
     val sumaryInteractionDF = crmInteractionDF.select("IdContact","ActivityType")
-          .groupBy("IdContact","ActivityType")
-          .agg(count("IdContact").as("count"))
-          .groupBy("IdContact")
-          .pivot("ActivityType", typeActDF)
-          .sum("count")
+      .groupBy("IdContact","ActivityType")
+      .agg(count("IdContact").as("count"))
+      .groupBy("IdContact")
+      .pivot("ActivityType", typeActDF)
+      .sum("count")
           .na.fill(0)
          // .withColumnRenamed("IdContact","IdContact")
 

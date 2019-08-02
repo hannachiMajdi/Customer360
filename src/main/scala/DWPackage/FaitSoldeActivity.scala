@@ -35,7 +35,7 @@ object FaitSoldeActivity {
       .option("inferSchema", "true")
       .load("src\\SourceData\\HIS_PGH_PositionGeneriquesHisto__20180101+.csv")
       .select(
-        lower($"PGH_CodCompte").as("FK_CodCompte"),
+        $"PGH_CodCompte".as("FK_CodCompte"),
         lower($"PGH_MntTotalValorisationTitresEnEuros").as("MntTotalValorisationTitresEnEuros"),
         lower($"PGH_MntSoldeEuroEnEuros").as("MntSoldeEuroEnEuros"),
        // lower($"CRO_Dateffet").as("Dateffet"),

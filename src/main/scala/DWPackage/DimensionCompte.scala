@@ -36,7 +36,7 @@ object DimensionCompte {
       .option("inferSchema", "true")
       .load("src\\SourceData\\CLI_TCL_TiersComptesLocal.csv")
       .select(
-        lower($"TCL_CodCompte_hash").as("CodCompte")
+        $"TCL_CodCompte_hash".as("CodCompte")
       )
         .na.drop()
         .distinct()

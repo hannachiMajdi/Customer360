@@ -1,7 +1,7 @@
 package DWPackage
 
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.functions.lower
+import org.apache.spark.sql.functions.{lit, lower, regexp_replace}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.elasticsearch.spark.sql._
 
@@ -35,9 +35,12 @@ object DimensionProduit {
       .option("delimiter", ";")
       .option("inferSchema", "true")
       .load("src\\SourceData\\CLI_GCO_GeneriquesComptes.csv")
+
+      .withColumn("CodProduit",regexp_replace($"GCO_CodProduit" , lit("NULL"), lit("cbcc" )))
+      .withColumn("LibProduit",regexp_replace($"GCO_LibProduit" , lit("NULL"), lit("carte bancaire Compte courant" )))
       .select(
-        lower($"GCO_CodProduit").as("CodProduit"),
-        lower($"GCO_LibProduit").as("LibProduit")
+        $"CodProduit",
+        $"LibProduit"
       )
         .na.drop()
         .distinct()

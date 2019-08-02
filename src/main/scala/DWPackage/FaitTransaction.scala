@@ -37,8 +37,9 @@ object FaitTransaction {
       .option("inferSchema", "true")
       .load("src\\SourceData\\CRO_CRO_CROD.csv")
       .select(
-        lower($"CRO_CodCompte").as("FK_CodCompte"),
+        $"CRO_CodCompte".as("FK_CodCompte"),
         lower($"CRO_CodOperation").as("FK_CodOperation"),
+        $"CRO_CodIsin".as("FK_CodIsin"),
         lower($"CRO_Qte").as("Qte"),
         lower($"CRO_MntBrutDevDep").as("MntBrutDevDep"),
        // lower($"CRO_Dateffet").as("Dateffet"),
