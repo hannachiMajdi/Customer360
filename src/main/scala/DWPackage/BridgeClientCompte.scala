@@ -40,11 +40,14 @@ object BridgeClientCompte {
         $"TCL_CodTiers".as("FK_CodTiers"),
         $"CRT_Libelle".as("TypeRelation")
       )
-        .withColumn("Id_ClientCompte",concat($"FK_CodCompte", lit(""), $"FK_CodTiers"))
+      .filter(
+        $"FK_CodTiers".isNotNull && $"FK_CodTiers" =!= "NULL" &&
+        $"FK_CodCompte".isNotNull && $"FK_CodCompte" =!= "NULL"
+      )
         .na.drop()
         .distinct()
 
-    DataDF.describe().show()
+    //DataDF.describe().show()
 
 
  //  DataDF.saveToEs("dw_bridge_client_compte/client_compte")

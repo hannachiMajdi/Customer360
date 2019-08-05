@@ -5,13 +5,13 @@ import java.util.Calendar
 import org.apache.spark.sql.{DataFrame, SQLContext, functions}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.elasticsearch.spark.sql._
-import org.apache.spark.sql.functions.{abs, lower, when}
+import org.apache.spark.sql.functions.{abs, round, when}
 
 object DimensionClient {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
-      .setAppName("ToGraphMigration")
+      .setAppName("DimCLient")
       .setMaster("local[*]")
     /*  .set("es.index.auto.create", "true")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -63,23 +63,30 @@ object DimensionClient {
       .filter($"GTI_CodTiers".isNotNull)
       .select(
         $"GTI_CodTiers".as("CodTiers"),
-        lower($"Status").as("Status"),
-        lower($"NomComplet").as("NomComplet"),
-        lower($"PaysNaissance").as("PaysNaissance"),
-        lower($"civilite").as("Civilite"),
-        lower($"GTI_DatNaissanceOuCreation").as("DateNaissanceOuCreation"),
-        lower($"Sexe").as("Sexe"),
-        lower($"SituationFamiliale").as("SituationFamiliale"),
-        lower($"csp").as("GroupProfession"),
-        lower($"profession").as("Profession"),
-        lower($"DepartementResidence").as("DepartementResidence")
+        $"Status".as("Status"),
+        $"NomComplet".as("NomComplet"),
+        $"PaysNaissance".as("PaysNaissance"),
+        $"civilite".as("Civilite"),
+        $"GTI_DatNaissanceOuCreation".as("DateNaissanceOuCreation"),
+        $"Sexe",
+        $"SituationFamiliale".as("SituationFamiliale"),
+        $"csp".as("GroupProfession"),
+        $"profession".as("Profession"),
+        $"DepartementResidence".as("DepartementResidence")
       )
       .withColumn("Age", when($"DateNaissanceOuCreation" >= 1900 , abs($"DateNaissanceOuCreation" - Year)).otherwise(65))
-
+      .withColumn("PaysDeNaissance", when($"PaysNaissance".isNull or $"PaysNaissance" === "NULL", "france").otherwise($"PaysNaissance"))
+      .withColumn("DatNaissance", when($"DateNaissanceOuCreation".isNull or $"DateNaissanceOuCreation" === "NULL", 1980).otherwise($"DateNaissanceOuCreation"))
+      .withColumn("Politesse", when($"Civilite".isNull or $"Civilite" === "NULL", "autre").otherwise($"Civilite"))
+      .withColumn("Genre", when($"Sexe".isNull or $"Sexe" === "NULL", "autre").otherwise($"Sexe"))
+      .withColumn("SituationFamilial", when($"SituationFamiliale".isNull or $"SituationFamiliale" === "NULL", "autre").otherwise($"SituationFamiliale"))
+      .withColumn("GroupeProfession", when($"GroupProfession".isNull or $"GroupProfession" === "NULL", "autre").otherwise($"GroupProfession"))
+      .withColumn("Fonction", when($"Profession".isNull or $"Profession" === "NULL", "autre").otherwise($"Profession"))
+      .drop("PaysNaissance", "Civilite", "Sexe", "SituationFamiliale", "GroupProfession", "Profession","DateNaissanceOuCreation")
       .na.drop()
-        .distinct()
-    DataDF.printSchema()
-    DataDF.describe().show()
+      .distinct()
+    //DataDF.printSchema()
+   // DataDF.describe().show()
 
 
     DataDF

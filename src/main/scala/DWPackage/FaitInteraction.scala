@@ -54,6 +54,7 @@ object FaitInteraction {
       )
         .withColumn("FK_Date",regexp_replace($"date" , lit("-"), lit("" )))
       .withColumn("FK_Activity",expr("substring(ActivityType, 1, 2)"))
+      .filter($"FK_CodTiers".isNotNull && $"FK_CodTiers"=!="NULL" )
        .na.drop()
         .drop("date","ActivityType")
 

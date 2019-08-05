@@ -38,21 +38,28 @@ object FaitTransaction {
       .load("src\\SourceData\\CRO_CRO_CROD.csv")
       .select(
         $"CRO_CodCompte".as("FK_CodCompte"),
-        lower($"CRO_CodOperation").as("FK_CodOperation"),
-        $"CRO_CodIsin".as("FK_CodIsin"),
-        lower($"CRO_Qte").as("Qte"),
-        lower($"CRO_MntBrutDevDep").as("MntBrutDevDep"),
+        $"CRO_CodOperation".as("FK_CodOperation"),
+        $"CRO_CodIsin",
+        $"CRO_Qte",
+        $"CRO_MntBrutDevDep",
        // lower($"CRO_Dateffet").as("Dateffet"),
         substring_index(lower(col("CRO_Dateffet")), " ", 1).as("date")
       )
         .withColumn("FK_Date",regexp_replace($"date" , lit("-"), lit("" )))
-       .na.drop()
-        .drop("date")
+        .withColumn("FK_CodIsin",regexp_replace($"CRO_CodIsin" , lit("NULL"), lit("UNCONNU" )))
+        .withColumn("Qte",when($"CRO_Qte".isNull or $"CRO_Qte"=!="NULL",0).otherwise($"CRO_Qte"))
+        .withColumn("MntBrutDevDep",when($"CRO_MntBrutDevDep".isNull or $"CRO_MntBrutDevDep"=!="NULL",0).otherwise($"CRO_MntBrutDevDep"))
 
-
+      .na.drop()
+        .drop("date","CRO_CodIsin","CRO_MntBrutDevDep","CRO_Qte")
 
 
     DataDF
+        .filter(
+          $"FK_Date".isNotNull && $"FK_Date"=!= "null" &&
+          $"FK_CodOperation".isNotNull && $"FK_CodOperation"=!= "null" &&
+          $"FK_CodCompte".isNotNull && $"FK_CodCompte"=!= "NULL"
+        )
       //.saveToEs("dw_fait_transaction/transaction")
       .repartition(1)
       .write

@@ -9,7 +9,7 @@ object DimensionDate {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
-      .setAppName("ToGraphMigration")
+      .setAppName("DimDate")
       .setMaster("local[*]")
     /*  .set("es.index.auto.create", "true")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")

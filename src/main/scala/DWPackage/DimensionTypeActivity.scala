@@ -1,10 +1,10 @@
 package DWPackage
 
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.functions.{lower, _}
+import org.apache.spark.sql.functions.{expr, when}
 import org.apache.spark.{SparkConf, SparkContext}
 
-object FaitCompteActivity {
+object DimensionTypeActivity {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
@@ -33,37 +33,26 @@ object FaitCompteActivity {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\MEN_GCO_GeneriquesComptes.csv")
+      .load("src\\SourceData\\CRM_V_INTERACTIONSOBP.csv")
       .select(
-
-        lower(concat($"GCO_AnMois".cast("String"),lit("01"))).as("FK_Date"),
-        $"GCO_CodCompte".as("FK_CodCompte"),
-        $"GCO_CodProduit".as("CodProduit"),
-        $"GCO_IsOuvert".as("IsOuvert"),
-        $"GCO_IsAsv".as("IsAsv"),
-        $"GCO_IsNanti".as("IsNanti"),
-        $"GCO_LibEtatCompte"
-       // lower($"CRO_Dateffet").as("Dateffet"),
+        $"ActivityType"
       )
-      .withColumn("FK_CodProduit",regexp_replace($"CodProduit" , lit("NULL"), lit("cbcc" )))
-      .withColumn("LibEtatCompte",regexp_replace($"GCO_LibEtatCompte" , lit("NULL"), lit("Non defini" )))
-      .drop("CodProduit","GCO_LibEtatCompte")
-        .na.fill(0)
+      .distinct()
+      .withColumn("CodActivity",expr("substring(ActivityType, 1, 2)"))
 
-
+      .na.drop()
+        .distinct()
 
 
 
     DataDF
-      //.saveToEs("dw_fait_compteactivity/compteactivity")
+      //.saveToEs("dw_dimension_operation/operation")
       .repartition(1)
       .write
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
-      .save("src\\DW\\dw_fait_compteactivity")
-
-
+      .save("src\\DW\\dw_dimension_typeactivity")
   }
 }
 

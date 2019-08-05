@@ -1,7 +1,7 @@
 package DWPackage
 
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.functions.lower
+import org.apache.spark.sql.functions.{lower, when}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.elasticsearch.spark.sql._
 
@@ -37,9 +37,12 @@ object DimensionOperation {
       .load("src\\SourceData\\CRO_CRO_CROD.csv")
       .select(
         $"CRO_CodOperation".as("CodOperation"),
-        lower($"CRO_LibOperation").as("LibOperation")
+        $"CRO_LibOperation"
       )
-        .na.drop()
+      .withColumn("LibOperation", when($"CRO_LibOperation".isNull or $"CRO_LibOperation" === "NULL", "Autre")
+        .otherwise($"CRO_LibOperation"))
+      .drop("CRO_LibOperation")
+      .na.drop()
         .distinct()
     DataDF.printSchema()
     DataDF.describe().show()
