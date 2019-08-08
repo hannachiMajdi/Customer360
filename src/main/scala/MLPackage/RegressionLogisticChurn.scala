@@ -11,7 +11,7 @@ object RegressionLogisticChurn {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
-      .setAppName("ToGraphMigration")
+      .setAppName("AttributionDeCredit")
       .setMaster("local[*]")
 
     val sc = new SparkContext(conf)
@@ -25,76 +25,74 @@ object RegressionLogisticChurn {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\ML\\CustomerRecordInput\\part-00000-c7702e51-86f1-43bc-a630-a58cf6202bb1-c000.csv")
-
-      .filter(
-        $"CodTiers".isNotNull && $"CodTiers" =!="null"&&
-          $"soldeTitre".isNotNull &&
-          $"soldeLiquide".isNotNull &&
-          $"Status".isNotNull && $"Status" =!="null"&&
-          $"NomComplet".isNotNull && $"NomComplet" =!="null"&&
-          $"PaysNaissance".isNotNull && $"PaysNaissance" =!="null"&&
-          $"Civilite".isNotNull && $"Civilite" =!="null"&&
-          $"DateNaissanceOuCreation".isNotNull && $"DateNaissanceOuCreation" =!="null"&&
-          $"Sexe".isNotNull && $"Sexe" =!="null"&&
-          $"SituationFamiliale".isNotNull && $"SituationFamiliale" =!="null"&&
-          $"GroupProfession".isNotNull && $"GroupProfession" =!="null"&&
-          $"Profession".isNotNull && $"Profession" =!="null"&&
-          $"DepartementResidence".isNotNull &&
-          $"Age".isNotNull &&
-          $"Ta".isNotNull &&
-          $"Ap".isNotNull &&
-          $"Or".isNotNull &&
-          $"RD".isNotNull &&
-          $"Ma".isNotNull &&
-          $"Churn".isNotNull
-      )
-
+      .load("src\\ML\\InputRecord\\part-00000-a14416ca-3b87-4413-8ff6-eebe4915dd36-c000.csv")
       .withColumnRenamed("Churn","label")
-      .drop("quitter","NomComplet","DateNaissanceOuCreation","Civilite","Status")
-
       .na.drop()
-
-
 
     CustomerDF.printSchema()
 
-
+//________________________ Sexe Attribute ____________________________
     val SXIndexer = new StringIndexer()
       .setInputCol("Sexe")
       .setOutputCol("SexeCode")
-
-    val SFIndexer = new StringIndexer()
-      .setInputCol("SituationFamiliale")
-      .setOutputCol("SituationFamilialeCode")
-
-    val GPIndexer = new StringIndexer()
-      .setInputCol("GroupProfession")
-      .setOutputCol("GroupProfessionCode")
-
-    val PrIndexer = new StringIndexer()
-      .setInputCol("Profession")
-      .setOutputCol("ProfessionCode")
-
-    // Convert numerival into one hot encoding
-
+      .setHandleInvalid("keep")
 
     val  SXEncoder = new OneHotEncoder()
       .setInputCol("SexeCode")
       .setOutputCol("SexeVector")
+    //________________________ SituationFamiliale Attribute ____________________________
 
+    val SFIndexer = new StringIndexer()
+      .setInputCol("SituationFamiliale")
+      .setOutputCol("SituationFamilialeCode")
+      .setHandleInvalid("keep")
 
     val  SFEncoder = new OneHotEncoder()
       .setInputCol("SituationFamilialeCode")
       .setOutputCol("SituationFamilialeVector")
 
+    //________________________ GroupProfession Attribute ____________________________
+
+    val GPIndexer = new StringIndexer()
+      .setInputCol("GroupProfession")
+      .setOutputCol("GroupProfessionCode")
+      .setHandleInvalid("keep")
+
     val GPEncoder = new OneHotEncoder()
       .setInputCol("GroupProfessionCode")
       .setOutputCol("GroupProfessionVector")
+    //________________________ Profession Attribute ____________________________
+
+    val PrIndexer = new StringIndexer()
+      .setInputCol("Profession")
+      .setOutputCol("ProfessionCode")
+      .setHandleInvalid("keep")
 
     val PrEncoder = new OneHotEncoder()
       .setInputCol("ProfessionCode")
       .setOutputCol("ProfessionVector")
+    //________________________ Status Attribute ____________________________
+
+    val STIndexer = new StringIndexer()
+      .setInputCol("Status")
+      .setOutputCol("StatusCode")
+      .setHandleInvalid("keep")
+
+    val STEncoder = new OneHotEncoder()
+      .setInputCol("StatusCode")
+      .setOutputCol("StatusVector")
+
+    //________________________ PaysNaissance Attribute ____________________________
+
+    val PNIndexer = new StringIndexer()
+      .setInputCol("PaysNaissance")
+      .setOutputCol("PaysNaissanceCode")
+      .setHandleInvalid("keep")
+
+    val PNEncoder = new OneHotEncoder()
+      .setInputCol("PaysNaissanceCode")
+      .setOutputCol("PaysNaissanceVector")
+
 
     // assembler
 
@@ -103,17 +101,17 @@ object RegressionLogisticChurn {
         Array(
           "soldeTitre",
           "soldeLiquide",
-          "Age",
-          "Ta",
-          "Ap",
-          "Or",
-          "RD",
-          "Ma",
-
+          "NbrReclamation",
+          "ExperienceEnBQ",
+          "nbProduit",
+          "NbrNantissement",
+          "nbrTransaction",
           "SexeVector",
           "SituationFamilialeVector",
           "GroupProfessionVector",
-          "ProfessionVector"
+          "ProfessionVector",
+          "PaysNaissanceVector",
+          "StatusVector"
         ))
       .setOutputCol("features")
       )
@@ -126,16 +124,19 @@ object RegressionLogisticChurn {
 
     val pipeline  = new Pipeline().setStages(
       Array(
-     //   PNIndexer,
-        SXIndexer.setHandleInvalid("keep"),
-        SFIndexer.setHandleInvalid("keep"),
-        GPIndexer.setHandleInvalid("keep"),
-        PrIndexer.setHandleInvalid("keep"),
-   //     PNEncoder,
+        PNIndexer,
+        SXIndexer,
+        SFIndexer,
+        GPIndexer,
+        PrIndexer,
+        STIndexer,
+
+        PNEncoder,
         SXEncoder,
         SFEncoder,
         GPEncoder,
         PrEncoder,
+        STEncoder,
         assembler,
         lr
       ))
@@ -145,6 +146,21 @@ object RegressionLogisticChurn {
     val results = model.transform(test)
 
     results.printSchema()
+
+    import org.apache.spark.mllib.evaluation.MulticlassMetrics
+
+    // val predictionAndLabels = results.select("prediction","label")
+    val predictionAndLabels = results//select("prediction","label")
+      .selectExpr("cast(prediction as double) prediction","cast(label as double) label")
+      // .withColumn("label", $"label" cast "Double")
+      .rdd
+      .map(row => (row.getDouble(0), row.getDouble(1)))
+
+    val metrics = new MulticlassMetrics(predictionAndLabels)
+
+    println("Confusion matrix")
+    println(metrics.confusionMatrix)
+    println(metrics.precision)
 
       val df = results
 
@@ -180,9 +196,7 @@ object RegressionLogisticChurn {
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
-      .save("src\\ML\\ChurnPrediction")
-
-
+      .save("src\\ML\\ChurnPrediction_1")
 
 
   }

@@ -1,13 +1,13 @@
 package MLPackage
 
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
+import org.apache.spark.ml.clustering.{BisectingKMeans, BisectingKMeansModel}
 import org.apache.spark.ml.evaluation.ClusteringEvaluator
 import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
 
-object KmeansSegmentation {
+object BisectingKmeansSegmentation {
   def main(args: Array[String]): Unit = {
 
     var conf = new SparkConf().setAppName("AttributionDeCredit").setMaster("local[*]")
@@ -35,7 +35,6 @@ object KmeansSegmentation {
       "nbrTransactionMensuel",
       "ExperienceEnBQ",
       "nbProduit",
-      "NbrReclamation",
       "NbrNantissement")
 
     val assembler = new VectorAssembler()
@@ -52,10 +51,10 @@ object KmeansSegmentation {
       .setInputCol("features")
       .setOutputCol("scaledFeatures")
       .setWithStd(true)
-      .setWithMean(true)
+      .setWithMean(false)
 
     // Trains a k-means model.
-    val kmeans = new KMeans().setK(3).setSeed(1L)
+    val bkm = new BisectingKMeans().setK(4).setSeed(1)
       //.setFeaturesCol("normFeatures")
       .setFeaturesCol("scaledFeatures")
     val pipeline = new Pipeline()
@@ -64,13 +63,17 @@ object KmeansSegmentation {
           assembler,
           //  normalizer,
           scaler,
-          kmeans)
+          bkm)
       )
 
     val model = pipeline.fit(customerDataDF)
 
     // Make predictions
     val predictions = model.transform(customerDataDF)
+    // Evaluate clustering.
+
+    val cost = model.stages(2).asInstanceOf[BisectingKMeansModel].computeCost(predictions)
+    println(s"Within Set Sum of Squared Errors = $cost")
 
     // Evaluate clustering by computing Silhouette score
     val evaluator = new ClusteringEvaluator()
@@ -83,17 +86,7 @@ object KmeansSegmentation {
     predictions.show(5, false)
     // Shows the result.
     println("Cluster Centers: ")
-    println(model.stages(2).asInstanceOf[KMeansModel].clusterCenters.getClass)
-    model.stages(2).asInstanceOf[KMeansModel].clusterCenters.foreach(println)
-
-    predictions.select($"CodTiers",$"prediction")
-      .repartition(1)
-      .write
-      .format("com.databricks.spark.csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .save("src\\ML\\KmeansSegmentation")
-
+    model.stages(2).asInstanceOf[BisectingKMeansModel].clusterCenters.foreach(println)
   }
 }
 
