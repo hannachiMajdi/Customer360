@@ -48,7 +48,7 @@ object DimensionInstrument {
 
       .na.drop()
       .distinct()
-    DataDF.write.mode("append").saveAsTable("DimInstrument")
+
 
 
     DataDF

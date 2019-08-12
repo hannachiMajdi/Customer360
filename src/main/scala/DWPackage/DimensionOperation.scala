@@ -1,9 +1,8 @@
 package DWPackage
 
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.functions.{lower, when}
+import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkConf, SparkContext}
-import org.elasticsearch.spark.sql._
 
 object DimensionOperation {
 
@@ -11,15 +10,15 @@ object DimensionOperation {
     var conf = new SparkConf()
       .setAppName("ToGraphMigration")
       .setMaster("local[*]")
-     /* .set("es.index.auto.create", "true")
-      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .set("spark.es.net.ssl","true")
-      .set("spark.es.nodes",  "aed8cb3e21e0419d81fe0e71bcff6ed8.eu-central-1.aws.cloud.es.io")
-      .set("spark.es.port", "9243")
-      .set("spark.es.net.http.auth.user","elastic")
-      .set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
-      //.set("spark.es.resource", indexName)
-      .set("spark.es.nodes.wan.only", "true")*/
+    /* .set("es.index.auto.create", "true")
+     .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+     .set("spark.es.net.ssl","true")
+     .set("spark.es.nodes",  "aed8cb3e21e0419d81fe0e71bcff6ed8.eu-central-1.aws.cloud.es.io")
+     .set("spark.es.port", "9243")
+     .set("spark.es.net.http.auth.user","elastic")
+     .set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
+     //.set("spark.es.resource", indexName)
+     .set("spark.es.nodes.wan.only", "true")*/
 
     val sc = new SparkContext(conf)
 
@@ -42,10 +41,8 @@ object DimensionOperation {
       .withColumn("LibOperation", when($"CRO_LibOperation".isNull or $"CRO_LibOperation" === "NULL", "Autre")
         .otherwise($"CRO_LibOperation"))
       .drop("CRO_LibOperation")
+      .distinct()
       .na.drop()
-        .distinct()
-    DataDF.printSchema()
-    DataDF.describe().show()
 
 
     DataDF

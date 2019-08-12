@@ -47,8 +47,8 @@ object FaitTransaction {
       )
         .withColumn("FK_Date",regexp_replace($"date" , lit("-"), lit("" )))
         .withColumn("FK_CodIsin",regexp_replace($"CRO_CodIsin" , lit("NULL"), lit("UNCONNU" )))
-        .withColumn("Qte",when($"CRO_Qte".isNull or $"CRO_Qte"=!="NULL",0).otherwise($"CRO_Qte"))
-        .withColumn("MntBrutDevDep",when($"CRO_MntBrutDevDep".isNull or $"CRO_MntBrutDevDep"=!="NULL",0).otherwise($"CRO_MntBrutDevDep"))
+        .withColumn("Qte",when($"CRO_Qte".isNull or $"CRO_Qte"==="NULL","0.0").otherwise($"CRO_Qte"))
+        .withColumn("MntBrutDevDep",when($"CRO_MntBrutDevDep".isNull or $"CRO_MntBrutDevDep"==="NULL","0.0").otherwise($"CRO_MntBrutDevDep"))
 
       .na.drop()
         .drop("date","CRO_CodIsin","CRO_MntBrutDevDep","CRO_Qte")
