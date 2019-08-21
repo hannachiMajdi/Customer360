@@ -8,136 +8,62 @@ object dumbCode {
 
 
   def main(args: Array[String]): Unit = {
-    var conf = new SparkConf().setAppName("ToGraphMigration").setMaster("local[*]")
+    val conf = new SparkConf().setAppName("ToGraphMigration").setMaster("local[*]")
 
     val sc = new SparkContext(conf)
     sc.setLogLevel("ERROR")
     val sqlContext = new SQLContext(sc)
     import sqlContext.implicits._
 
-    val dataDF =
-      sqlContext.read.format("csv")
-        .option("header", "true")
-        .option("delimiter", ";")
-        .option("inferSchema", "true")
-        .load("src\\SourceData\\MEN_GCO_GeneriquesComptes.csv")
-    val df =  sqlContext.read.format("csv")
+    val BridgeDF = sqlContext.read.format("csv")
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\CLI_TCL_TiersComptesLocal.csv")
+      .load("src\\DW\\dw_bridge_client_compte\\part-00000-f7a024e9-7641-452b-afd2-57e21469d1b0-c000.csv")
 
-   val joinDF =  dataDF.join(df,df("TCL_CodCompte_hash")===dataDF("GCO_CodCompte"),"outer"
-      )
-    joinDF
+
+    val InDF =  sqlContext.read.format("csv")
+      .option("header", "true")
+      .option("delimiter", ";")
+      .option("inferSchema", "true")
+      .load("src\\DW\\dw_fait_interaction\\part-00000-d1f3496e-b823-46d6-be15-fec204ead6dd-c000.csv")
+
+    val TrDF =  sqlContext.read.format("csv")
+      .option("header", "true")
+      .option("delimiter", ";")
+      .option("inferSchema", "true")
+      .load("src\\DW\\dw_fait_transaction\\part-00000-f39a60be-c38c-41e2-b585-81b097db8988-c000.csv")
+      .select("FK_CodCompte").distinct()
+
+    val SdDF =  sqlContext.read.format("csv")
+      .option("header", "true")
+      .option("delimiter", ";")
+      .option("inferSchema", "true")
+      .load("src\\DW\\dw_fait_soldeactivity\\part-00000-2c90d107-75dc-4d66-a6fb-23d88212d261-c000.csv")
+
+      .select("FK_CodCompte").distinct()
+
+    val CpDF =  sqlContext.read.format("csv")
+      .option("header", "true")
+      .option("delimiter", ";")
+      .option("inferSchema", "true")
+      .load("src\\DW\\dw_fait_compteactivity\\part-00000-60cdb97e-89ce-4bd3-b2cc-1c18a7cd9380-c000.csv")
+      .select("FK_CodCompte").distinct()
+
+    val CustomerDf = BridgeDF
+      .join(TrDF,"FK_CodCompte")
+      .join(SdDF,"FK_CodCompte")
+      .join(CpDF,"FK_CodCompte")
+      .select("FK_CodTiers").distinct()
+
+    CustomerDf
+      //.saveToEs("dw_dimension_client/client")
       .repartition(1)
       .write
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
-      .save("src\\TargetData\\FaitComptes2")
-
-/*
-    val dataDF =
-      sqlContext.read.format("csv")
-        .option("header", "true")
-        .option("delimiter", ";")
-        .option("inferSchema", "true")
-        .load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
-        .select(
-
-        $"Id".as("CodContact"),
-        $"code2".as("CodTiers"),
-        $"Status",
-        $"ClientPhoneContactFrequency",
-        $"ClientMeetingFrequency",
-        $"MeetingFrequency",
-        $"PhoneContactFrequency"
-      )
-        .join(DemographicDF(sqlContext),"CodTiers")
-
-    dataDF.printSchema()
-    dataDF.describe().show()*/
-
- /*   dataDF
-      .repartition(1)
-      .write
-      .format("com.databricks.spark.csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .save("src\\TargetData\\BKCustomerData")
-*/
-
-  }
-
-  def BKCustomerDataDF(sqlContext: SQLContext): DataFrame = {
-
-    import sqlContext.implicits._
-
-    //src\TargetData\RefProduit
-    sqlContext.read.format("csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .option("inferSchema", "true")
-      .load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
-      .select(
-
-        $"Id".as("CodContact"),
-        $"code2".as("CodTiers"),
-        $"Status",
-        $"ClientPhoneContactFrequency",
-        $"ClientMeetingFrequency",
-        $"MeetingFrequency",
-        $"PhoneContactFrequency"
-      )
-      .join(DemographicDF(sqlContext),"CodTiers")
-  }
-  def DemographicDF(sqlContext: SQLContext): DataFrame = {
-
-    import sqlContext.implicits._
-
-    //src\TargetData\RefProduit
-    val TiersDF = sqlContext.read.format("csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .option("inferSchema", "true")
-      .load("src\\SourceData\\names\\names.csv")
-      .join(sqlContext.read.format("csv")
-        .option("header", "true")
-        .option("delimiter", ";")
-        .option("inferSchema", "true")
-        .load("src\\SourceData\\CLI_GTI_GeneriquesTiers.csv"), "GTI_CodTiers")
-
-    val lienDF = sqlContext.read.format("csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .option("inferSchema", "true")
-      .load("src\\SourceData\\CLI_TCL_TiersComptesLocal.csv")
-
-    val compteDF = sqlContext.read.format("csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .option("inferSchema", "true")
-      .load("src\\TargetData\\BkCompteData\\data.csv")
-      .withColumnRenamed("CodCompte", "TCL_CodCompte_hash")
-
-
-    return lienDF.join(TiersDF, lienDF("TCL_CodTiers") === TiersDF("GTI_CodTiers"))
-      .join(compteDF, "TCL_CodCompte_hash")
-      .select(
-        $"GTI_CodTiers".as("CodTiers"),
-        $"profession",
-        $"nomComplet",
-        $"Sexe",
-        $"SituationFamiliale",
-        $"PaysNaissance",
-        $"civilite",
-        $"csp".as("GroupeSociale"),
-        $"GTI_CodTypeInvestisseurMif2".as("CodTypeInvestisseurMif2"),
-        $"GTI_CodExperienceMif2".as("CodExperienceMif2"),
-        $"GTI_CodCapaciteProduitComplexeMif2".as("CodCapaciteProduitComplexeMif2"),
-        $"DepartementResidence"
-      ).distinct()
+      .save("SourceData\\client")
   }
 
 

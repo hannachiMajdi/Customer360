@@ -49,9 +49,13 @@ object DimensionInstrument {
       .na.drop()
       .distinct()
 
+    val UnknownRow = sqlContext.createDataFrame(Seq(
+      ("UNCONNU", "Autre","Autre Instrument","Autre Emetteur", "001")
+    )).toDF("CodISIN","Libelle","LibInstrument","LibEmetteur","CodPaysEmission")
 
 
     DataDF
+        .union(UnknownRow)
       //.saveToEs("dw_dimension_instrument/instrument")
       .repartition(1)
       .write

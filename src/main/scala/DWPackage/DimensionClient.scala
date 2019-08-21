@@ -90,6 +90,13 @@ object DimensionClient {
 
 
     DataDF
+        .join(sqlContext.read.format("csv")
+          .option("header", "true")
+          .option("delimiter", ";")
+          .option("inferSchema", "true")
+          .load("SourceData\\client\\part-00000-8538c3ab-74e9-499a-85a4-971779656e1c-c000.csv")
+            .select($"FK_CodTiers".as("CodTiers")).distinct()
+          , "CodTiers")
       //.saveToEs("dw_dimension_client/client")
       .repartition(1)
       .write

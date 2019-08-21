@@ -1,10 +1,11 @@
 package MLPackage
 
-import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.{Pipeline, linalg}
 import org.apache.spark.ml.clustering.{KMeans, KMeansModel}
 import org.apache.spark.ml.evaluation.ClusteringEvaluator
 import org.apache.spark.ml.feature.{StandardScaler, VectorAssembler}
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.functions.{col, udf}
 import org.apache.spark.{SparkConf, SparkContext}
 
 object KmeansSegmentation {
@@ -85,7 +86,7 @@ object KmeansSegmentation {
     println("Cluster Centers: ")
     println(model.stages(2).asInstanceOf[KMeansModel].clusterCenters.getClass)
     model.stages(2).asInstanceOf[KMeansModel].clusterCenters.foreach(println)
-
+/*
     predictions.select($"CodTiers",$"prediction")
       .repartition(1)
       .write
@@ -93,6 +94,54 @@ object KmeansSegmentation {
       .option("header", "true")
       .option("delimiter", ";")
       .save("src\\ML\\KmeansSegmentation")
+      */
+
+    val df = predictions
+
+      .select("CodTiers","scaledFeatures","prediction")
+
+    // A UDF to convert VectorUDT to ArrayType
+    val vecToArray = udf( (xs: linalg.Vector) => xs.toArray )
+
+    // Add a ArrayType Column
+    val dfArr = df.withColumn("scaledFeaturesArr" , vecToArray($"scaledFeatures") )
+
+    // Array of element names that need to be fetched
+    // ArrayIndexOutOfBounds is not checked.
+    // sizeof `elements` should be equal to the number of entries in column `features`
+    val elements = Array(
+      "Scaled_Solde",
+      "Scaled_Age",
+      "Scaled_nbrTransactionMensuel",
+      "Scaled_ExperienceEnBQ",
+      "Scaled_nbProduit",
+      "Scaled_NbrReclamation",
+      "Scaled_NbrNantissement"
+    )
+
+    // Create a SQL-like expression using the array
+    val sqlExpr = elements.zipWithIndex.map{ case (alias, idx) => col("scaledFeaturesArr").getItem(idx).as(alias) }
+
+    // Extract Elements from dfArr
+    val dDF = dfArr.select((col("*")+: sqlExpr) :_*)
+    //.saveToEs("dw_dimension_client/client")
+    dDF.select(
+      $"CodTiers",
+      $"Scaled_Solde",
+      $"Scaled_Age",
+      $"Scaled_nbrTransactionMensuel",
+      $"Scaled_ExperienceEnBQ",
+      $"Scaled_nbProduit",
+      $"Scaled_NbrReclamation",
+      $"Scaled_NbrNantissement",
+      $"prediction"
+    ).na.drop().toDF()
+      .repartition(1)
+      .write
+      .format("com.databricks.spark.csv")
+      .option("header", "true")
+      .option("delimiter", ";")
+      .save("src\\ML\\KmeansSegmentation_0")
 
   }
 }

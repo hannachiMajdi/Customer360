@@ -162,7 +162,7 @@ object RegressionLogisticChurn {
     println(metrics.confusionMatrix)
     println(metrics.precision)
 
-      val df = results
+      val df = model.transform(CustomerDF)
 
        .select("CodTiers","probability","prediction")
 
@@ -196,7 +196,7 @@ object RegressionLogisticChurn {
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
-      .save("src\\ML\\ChurnPrediction_1")
+      .save("src\\ML\\ChurnPrediction_2")
 
 
   }
