@@ -25,7 +25,9 @@ object CorrelationMatrix {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\ML\\InputRecord\\part-00000-a14416ca-3b87-4413-8ff6-eebe4915dd36-c000.csv")
+      .load("src\\ML\\InputRecord_2\\part-00000-eff91192-627c-487f-a4ad-7d24613fe917-c000.csv")
+      .na.drop()
+
     val assembler = (new VectorAssembler()
       .setInputCols(
         Array(
@@ -35,9 +37,8 @@ object CorrelationMatrix {
           "ExperienceEnBQ",
           "nbProduit",
           "NbrNantissement",
-          "nbrTransaction",
-          "AttributionCredit",
-          "Churn"
+          "nbrTransaction"
+
 
         ))
       .setOutputCol("features")
@@ -45,11 +46,11 @@ object CorrelationMatrix {
     val df = assembler.transform(customerDataDF)
     val Row(coeff1: Matrix) = Correlation.corr(df, "features").head
 
-    println("Pearson correlation matrix:\n ")
+    println("Matrice de correlation Pearson:\n ")
     println(coeff1.toString(9,Int.MaxValue))
 
         val Row(coeff2: Matrix) = Correlation.corr(df, "features", "spearman").head
-        println("Spearman correlation matrix:\n ")
+        println("Matrice de correlation de Spearman :\n ")
 
     println(coeff2.toString(9,Int.MaxValue))
 

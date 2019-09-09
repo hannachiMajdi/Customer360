@@ -7,6 +7,8 @@ import org.apache.spark.ml.feature.{StandardScaler, StringIndexer, VectorAssembl
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkConf, SparkContext}
+import org.elasticsearch.spark.sql._
+
 
 object ALSNextMoveDataInput {
   def main(args: Array[String]): Unit = {
@@ -19,19 +21,27 @@ object ALSNextMoveDataInput {
     import sqlContext.implicits._
 
 
-    val BridgeDF = sqlContext.read.format("csv")
+    val BridgeDF =
+      sqlContext.read.format("org.elasticsearch.spark.sql").load("dw_bridge_client_compte")
+    /*sqlContext.read.format("csv")
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
       .load("src\\DW\\dw_bridge_client_compte\\part-00000-f7a024e9-7641-452b-afd2-57e21469d1b0-c000.csv")
 
+     */
+
     // ________________Nbr Transaction_____________________
 
-    val SommeDF = sqlContext.read.format("csv")
+    val SommeDF =       sqlContext.read.format("org.elasticsearch.spark.sql").load("dw_fait_transaction")
+
+      /*sqlContext.read.format("csv")
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
       .load("src\\DW\\dw_fait_transaction\\part-00000-78951a1c-3a61-42e1-9bbd-7a4d3d6a550b-c000.csv")
+
+       */
       .join(BridgeDF, "FK_CodCompte")
       .groupBy("FK_CodTiers","FK_CodIsin")
       .agg(
@@ -74,16 +84,16 @@ object ALSNextMoveDataInput {
       )
 
 
-      //.saveToEs("dw_dimension_client/client")
-      .repartition(1)
-      .write
-     /* .write
-      .format("com.databricks.spark.csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .save("src\\ML\\ALSInput")
+      .saveToEs("ml_nextmove_input")
+    /*.repartition(1)
+    .write
+    .write
+    .format("com.databricks.spark.csv")
+    .option("header", "true")
+    .option("delimiter", ";")
+    .save("src\\ML\\ALSInput")
 
-      */
+    */
   }
 }
 

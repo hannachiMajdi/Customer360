@@ -13,15 +13,15 @@ object DimensionClient {
     var conf = new SparkConf()
       .setAppName("DimCLient")
       .setMaster("local[*]")
-    /*  .set("es.index.auto.create", "true")
+      .set("es.index.auto.create", "true")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .set("spark.es.net.ssl","true")
-      .set("spark.es.nodes",  "aed8cb3e21e0419d81fe0e71bcff6ed8.eu-central-1.aws.cloud.es.io")
-      .set("spark.es.port", "9243")
-      .set("spark.es.net.http.auth.user","elastic")
-      .set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
-      //.set("spark.es.resource", indexName)
-      .set("spark.es.nodes.wan.only", "true")*/
+      //.set("spark.es.net.ssl","true")
+      .set("spark.es.nodes",  "127.0.0.1")
+      .set("spark.es.port", "9200")
+    //.set("spark.es.net.http.auth.user","elastic")
+    //.set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
+    //.set("spark.es.resource", indexName)
+    // .set("spark.es.nodes.wan.only", "true")
 
     val sc = new SparkContext(conf)
 
@@ -39,7 +39,9 @@ object DimensionClient {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
+//      .load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
+      .load("hdfs://localhost:9000/DataLake/CRM/Contact/*.csv")
+
       .select(
 
         $"Id".as("CodContact"),
@@ -54,12 +56,15 @@ object DimensionClient {
         .option("header", "true")
         .option("delimiter", ";")
         .option("inferSchema", "true")
-        .load("src\\SourceData\\names\\names.csv")
+        //.load("src\\SourceData\\names\\names.csv")
+          .load("hdfs://localhost:9000/DataLake/Other/Names/*.csv")
         .join(sqlContext.read.format("csv")
           .option("header", "true")
           .option("delimiter", ";")
           .option("inferSchema", "true")
-          .load("src\\SourceData\\CLI_GTI_GeneriquesTiers.csv"), "GTI_CodTiers"), "GTI_CodTiers")
+         // .load("src\\SourceData\\CLI_GTI_GeneriquesTiers.csv")
+          .load("hdfs://localhost:9000/DataLake/CoreBanking/Tiers/*.csv")
+          , "GTI_CodTiers"), "GTI_CodTiers")
       .filter($"GTI_CodTiers".isNotNull)
       .select(
         $"GTI_CodTiers".as("CodTiers"),
@@ -88,8 +93,8 @@ object DimensionClient {
     //DataDF.printSchema()
    // DataDF.describe().show()
 
-
-    DataDF
+    DataDF.saveToEs("dw_dimension_client")
+   /* DataDF
         .join(sqlContext.read.format("csv")
           .option("header", "true")
           .option("delimiter", ";")
@@ -97,13 +102,17 @@ object DimensionClient {
           .load("SourceData\\client\\part-00000-8538c3ab-74e9-499a-85a4-971779656e1c-c000.csv")
             .select($"FK_CodTiers".as("CodTiers")).distinct()
           , "CodTiers")
-      //.saveToEs("dw_dimension_client/client")
-      .repartition(1)
+
+     /* .repartition(1)
       .write
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
       .save("src\\DW\\dw_dimension_client")
+
+      */
+
+    */
   }
 }
 

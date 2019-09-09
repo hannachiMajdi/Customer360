@@ -21,10 +21,11 @@ object BisectingKmeansSegmentation {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\ML\\InputRecord\\part-00000-a14416ca-3b87-4413-8ff6-eebe4915dd36-c000.csv")
+      .load("src\\ML\\InputRecord_2\\part-00000-eff91192-627c-487f-a4ad-7d24613fe917-c000.csv")
       .withColumn("Solde", $"soldeTitre" + $"soldeLiquide")
+      .drop("churn","AttributionCredit")
 
-    customerDataDF.printSchema()
+
 
 
     //_________________________ Selection des inputs _____________________________________________
@@ -54,7 +55,7 @@ object BisectingKmeansSegmentation {
       .setWithMean(false)
 
     // Trains a k-means model.
-    val bkm = new BisectingKMeans().setK(4).setSeed(1)
+    val bkm = new BisectingKMeans().setK(3).setSeed(1)
       //.setFeaturesCol("normFeatures")
       .setFeaturesCol("scaledFeatures")
     val pipeline = new Pipeline()
@@ -80,10 +81,7 @@ object BisectingKmeansSegmentation {
 
     val silhouette = evaluator.evaluate(predictions)
     println(s"Silhouette with squared euclidean distance = $silhouette")
-    // Shows the result.
-    println("Cluster Centers: ")
-    predictions.printSchema()
-    predictions.show(5, false)
+
     // Shows the result.
     println("Cluster Centers: ")
     model.stages(2).asInstanceOf[BisectingKMeansModel].clusterCenters.foreach(println)

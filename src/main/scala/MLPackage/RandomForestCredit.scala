@@ -8,6 +8,7 @@ import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.functions.{col, udf}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.elasticsearch.spark.sql._
 
 object RandomForestCredit {
     def main(args: Array[String]): Unit = {
@@ -20,14 +21,17 @@ object RandomForestCredit {
 
       import sqlContext.implicits._
 
-      val customerDataDF = sqlContext.read.format("csv")
+      val customerDataDF =
+      /*sqlContext.read.format("csv")
         .option("header", "true")
         .option("delimiter", ";")
         .option("inferSchema", "true")
-        .load("src\\ML\\InputRecord\\part-00000-a14416ca-3b87-4413-8ff6-eebe4915dd36-c000.csv")
-        .withColumnRenamed("AttributionCredit","label")
+        .load("src\\ML\\InputRecord_2\\part-00000-eff91192-627c-487f-a4ad-7d24613fe917-c000.csv")*/
+        sqlContext.read.format("org.elasticsearch.spark.sql").load("ml_customer_record_input")
+          .withColumnRenamed("AttributionCredit","label")
+        .drop("churn")
 
-      customerDataDF.printSchema()
+
 
       //________________________ Sexe Attribute ____________________________
       val SXIndexer = new StringIndexer()
@@ -115,7 +119,7 @@ object RandomForestCredit {
         .setOutputCol("features")
         )
 
-      val Array(training,test) = customerDataDF.randomSplit(Array(0.7,0.3),seed = 12345)
+      val Array(training,test) = customerDataDF.na.drop().randomSplit(Array(0.7,0.3),seed = 12345)
 
       import org.apache.spark.ml.Pipeline
       // Train a RandomForest model.
@@ -150,20 +154,25 @@ object RandomForestCredit {
 
       // Make predictions.
       val predictions = model.transform(test)
-      predictions.printSchema()
 
-      // Select example rows to display.
-      predictions.select("prediction", "label", "features").show(5)
 
-      // Select (prediction, true label) and compute test error.
-      val evaluator = new MulticlassClassificationEvaluator()
-        .setLabelCol("label")
-        .setPredictionCol("prediction")
-        .setMetricName("accuracy")
-      val accuracy = evaluator.evaluate(predictions)
-      println(s"Test Error = ${(1.0 - accuracy)}")
+      import org.apache.spark.mllib.evaluation.MulticlassMetrics
 
-      val df = predictions
+      // val predictionAndLabels = results.select("prediction","label")
+      val predictionAndLabels = predictions//select("prediction","label")
+        .selectExpr("cast(prediction as double) prediction","cast(label as double) label")
+        // .withColumn("label", $"label" cast "Double")
+        .rdd
+        .map(row => (row.getDouble(0), row.getDouble(1)))
+
+      val metrics = new MulticlassMetrics(predictionAndLabels)
+
+      println("Matrice de confusion")
+      println(metrics.confusionMatrix)
+      println("---------------------")
+      println("Précision = " + metrics.precision)
+
+      val df = model.transform(customerDataDF)
 
         .select("CodTiers","probability","prediction")
 
@@ -192,12 +201,17 @@ object RandomForestCredit {
         $"prediction"
       ).na.drop().toDF()
 
-      ff.repartition(1)
+      ff.saveToEs("ml_credit_propability")
+        /*repartition(1)
         .write
         .format("com.databricks.spark.csv")
         .option("header", "true")
         .option("delimiter", ";")
         .save("src\\ML\\RandomForestCredit")
+
+         */
+
+
 
     }
 }

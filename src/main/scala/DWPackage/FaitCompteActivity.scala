@@ -3,22 +3,24 @@ package DWPackage
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.functions.{lower, _}
 import org.apache.spark.{SparkConf, SparkContext}
+import org.elasticsearch.spark.sql._
+
 
 object FaitCompteActivity {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
-      .setAppName("ToGraphMigration")
+      .setAppName("FaitCompteActivity")
       .setMaster("local[*]")
-     /* .set("es.index.auto.create", "true")
+      .set("es.index.auto.create", "true")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .set("spark.es.net.ssl","true")
-      .set("spark.es.nodes",  "aed8cb3e21e0419d81fe0e71bcff6ed8.eu-central-1.aws.cloud.es.io")
-      .set("spark.es.port", "9243")
-      .set("spark.es.net.http.auth.user","elastic")
-      .set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
-      //.set("spark.es.resource", indexName)
-      .set("spark.es.nodes.wan.only", "true")*/
+      //.set("spark.es.net.ssl","true")
+      .set("spark.es.nodes",  "127.0.0.1")
+      .set("spark.es.port", "9200")
+    //.set("spark.es.net.http.auth.user","elastic")
+    //.set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
+    //.set("spark.es.resource", indexName)
+    // .set("spark.es.nodes.wan.only", "true")
 
     val sc = new SparkContext(conf)
 
@@ -33,7 +35,9 @@ object FaitCompteActivity {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\MEN_GCO_GeneriquesComptes.csv")
+     // .load("src\\SourceData\\MEN_GCO_GeneriquesComptes.csv")
+      .load("hdfs://localhost:9000/DataLake/CoreBanking/HistoCompte/*.csv")
+
       .select(
 
         lower(concat($"GCO_AnMois".cast("String"),lit("01"))).as("FK_Date"),
@@ -55,8 +59,8 @@ object FaitCompteActivity {
 
 
     DataDF
-      //.saveToEs("dw_fait_compteactivity/compteactivity")
-      .repartition(1)
+      .saveToEs("dw_fait_compteactivity")
+     /* .repartition(1)
       .write
       .format("com.databricks.spark.csv")
       .option("header", "true")
@@ -64,6 +68,7 @@ object FaitCompteActivity {
       .save("src\\DW\\dw_fait_compteactivity")
 
 
+      */
   }
 }
 

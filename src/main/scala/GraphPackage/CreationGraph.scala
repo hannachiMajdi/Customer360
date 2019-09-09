@@ -21,13 +21,14 @@ object CreationGraph {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
-
+      //.load("src\\SourceData\\CRM_V_CONTACTS_v2.csv")
+      .load("hdfs://localhost:9000/DataLake/CRM/Contact/*.csv")
       //Changement des noms de colonnes
       .select(
       $"Id".as("IdContact"),
       $"code2".as("IdClient")
     )
+      .na.drop()
 
 
 
@@ -35,7 +36,9 @@ object CreationGraph {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\ContactRelation_OBP_CRM.csv")
+     // .load("src\\SourceData\\ContactRelation_OBP_CRM.csv")
+      .load("hdfs://localhost:9000/DataLake/CRM/Relation/*.csv")
+
       //Changement des noms de colonnes
       .withColumnRenamed("ContactId origine", "ContactId_origine")
       .withColumnRenamed("ContactId Cible", "ContactId_cible")
@@ -61,13 +64,13 @@ object CreationGraph {
 
     val ranks = relationGraph.pageRank(0.0001).vertices
 
-    ranks
-      .join(customerVertices)
+    ranks.take(5).foreach(println)
+     /* .join(customerVertices)
       .sortBy(_._2._1, ascending = false) // sort by the rank
-       // get the top 10
+
       .repartition(1)
       .saveAsTextFile("src\\Graph\\MostConnectedwPageRank")
-
+*/
 
   }
 }

@@ -1,13 +1,15 @@
 package MLPackage
 
-import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml._
+import org.apache.spark.ml.classification.{GBTClassifier, LogisticRegression}
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.ml._
-import org.elasticsearch.spark.sql._
-object RegressionLogisticChurn {
+
+object GBTsChurn {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
@@ -22,18 +24,13 @@ object RegressionLogisticChurn {
     import sqlContext.implicits._
 
     val CustomerDF =
-      /*sqlContext.read.format("csv")
+    /*sqlContext.read.format("csv")
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\ML\\InputRecord_2\\part-00000-eff91192-627c-487f-a4ad-7d24613fe917-c000.csv")
-       */
+      .load("src\\ML\\InputRecord_2\\part-00000-eff91192-627c-487f-a4ad-7d24613fe917-c000.csv")*/
       sqlContext.read.format("org.elasticsearch.spark.sql").load("ml_customer_record_input")
-
-        .withColumnRenamed("Churn","label")
-
-
-
+      .withColumnRenamed("Churn","indexedLabel")
       .drop("AttributionCredit")
 /*
 
@@ -125,14 +122,21 @@ object RegressionLogisticChurn {
           "PaysNaissanceVector",
           "StatusVector"
         ))
-      .setOutputCol("features")
+      .setOutputCol("indexedFeatures")
       )
 
     val Array(training,test) = CustomerDF.na.drop().randomSplit(Array(0.7,0.3),seed = 12345)
 
     import org.apache.spark.ml.Pipeline
 
-    val lr = new LogisticRegression()
+
+    // Train a GBT model.
+    val gbt = new GBTClassifier()
+      .setLabelCol("indexedLabel")
+      .setFeaturesCol("indexedFeatures")
+      .setMaxIter(10)
+      .setFeatureSubsetStrategy("auto")
+
 
     val pipeline  = new Pipeline().setStages(
       Array(
@@ -150,20 +154,20 @@ object RegressionLogisticChurn {
         PrEncoder,
         STEncoder,
         assembler,
-        lr
+        gbt
       ))
 
     val model = pipeline.fit(training)
 
     val results = model.transform(test)
 
-    results.printSchema()
+
 
     import org.apache.spark.mllib.evaluation.MulticlassMetrics
 
     // val predictionAndLabels = results.select("prediction","label")
     val predictionAndLabels = results//select("prediction","label")
-      .selectExpr("cast(prediction as double) prediction","cast(label as double) label")
+      .selectExpr("cast(prediction as double) prediction","cast(indexedLabel as double) label")
       // .withColumn("label", $"label" cast "Double")
       .rdd
       .map(row => (row.getDouble(0), row.getDouble(1)))
@@ -174,8 +178,7 @@ object RegressionLogisticChurn {
     println(metrics.confusionMatrix)
     println("---------------------")
     println("Précision = " + metrics.precision)
-
-    results.select("CodTiers","probability","prediction").show(5)
+/*
 
 
       val df = model.transform(CustomerDF)
@@ -207,21 +210,14 @@ object RegressionLogisticChurn {
       $"prediction"
     ).na.drop().toDF()
 
-    ff.saveToEs("ml_churn_propability")
-    /*  ff.repartition(1)
+      ff.repartition(1)
       .write
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
       .save("src\\ML_0\\ChurnPrediction_2")
 
-
-
  */
-
-
-
-
 
 
   }

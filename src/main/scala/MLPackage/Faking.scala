@@ -1,15 +1,17 @@
-package DWPackage
+package MLPackage
+
+import java.util.Calendar
 
 import org.apache.spark.sql.SQLContext
-import org.apache.spark.sql.functions.lower
+import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkConf, SparkContext}
 import org.elasticsearch.spark.sql._
 
-object DimensionCompte {
+object Faking {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
-      .setAppName("Bridge")
+      .setAppName("SingleRecord")
       .setMaster("local[*]")
       .set("es.index.auto.create", "true")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -22,38 +24,17 @@ object DimensionCompte {
     // .set("spark.es.nodes.wan.only", "true")
 
     val sc = new SparkContext(conf)
-
-
     sc.setLogLevel("ERROR")
     val sqlContext = new SQLContext(sc)
-
     import sqlContext.implicits._
 
-    //src\TargetData\RefProduit
-    val DataDF = sqlContext.read.format("csv")
+
+    sqlContext.read.format("csv")
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      //.load("src\\SourceData\\CLI_TCL_TiersComptesLocal.csv")
-      .load("hdfs://localhost:9000/DataLake/CoreBanking/TiersCompte/*.csv")
-      .select(
-        $"TCL_CodCompte_hash".as("CodCompte")
-      )
-        .na.drop()
-        .distinct()
-
-
-
-    DataDF
-      .saveToEs("dw_dimension_compte")
-      /*.repartition(1)
-      .write
-      .format("com.databricks.spark.csv")
-      .option("header", "true")
-      .option("delimiter", ";")
-      .save("src\\DW\\dw_dimension_compte")*/
-
-
+      .load("src\\ML\\InputRecord_2\\part-00000-eff91192-627c-487f-a4ad-7d24613fe917-c000.csv")
+      .saveToEs("ml_customer_record_input")
   }
 }
 

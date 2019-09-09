@@ -35,7 +35,7 @@ object FaitTransaction {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\CRO_CRO_CROD.csv")
+      .load("hdfs://localhost:9000/DataLake/CoreBanking/Transaction/*.csv")
       .select(
         $"CRO_CodCompte".as("FK_CodCompte"),
         $"CRO_CodOperation".as("FK_CodOperation"),
@@ -60,13 +60,15 @@ object FaitTransaction {
           $"FK_CodOperation".isNotNull && $"FK_CodOperation"=!= "null" &&
           $"FK_CodCompte".isNotNull && $"FK_CodCompte"=!= "NULL"
         )
-      //.saveToEs("dw_fait_transaction/transaction")
-      .repartition(1)
+      .saveToEs("dw_fait_transaction")
+     /* .repartition(1)
       .write
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
       .save("src\\DW\\dw_fait_transaction")
+
+      */
   }
 }
 

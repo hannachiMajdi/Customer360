@@ -5,8 +5,10 @@ import org.apache.spark.ml.classification.{DecisionTreeClassificationModel, Deci
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkConf, SparkContext}
+
 
 object DecisionTreeCredit {
     def main(args: Array[String]): Unit = {
@@ -18,14 +20,19 @@ object DecisionTreeCredit {
       val sqlContext = new SQLContext(sc)
 
       import sqlContext.implicits._
-      val customerDataDF = sqlContext.read.format("csv")
+      val customerDataDF =
+      /*sqlContext.read.format("csv")
         .option("header", "true")
         .option("delimiter", ";")
         .option("inferSchema", "true")
-        .load("src\\ML\\InputRecord\\part-00000-a14416ca-3b87-4413-8ff6-eebe4915dd36-c000.csv")
-        .withColumnRenamed("AttributionCredit","label")
+        .load("src\\ML\\InputRecord_2\\part-00000-eff91192-627c-487f-a4ad-7d24613fe917-c000.csv")
 
-      customerDataDF.printSchema()
+       */
+        sqlContext.read.format("org.elasticsearch.spark.sql").load("ml_customer_record_input")
+
+          .withColumnRenamed("AttributionCredit","label")
+          .drop("churn")
+
 
       //________________________ Sexe Attribute ____________________________
       val SXIndexer = new StringIndexer()
@@ -150,7 +157,7 @@ object DecisionTreeCredit {
 
 
 
-      val Array(training,test) = customerDataDF.randomSplit(Array(0.7,0.3),seed = 12345)
+      val Array(training,test) = customerDataDF.na.drop().randomSplit(Array(0.7,0.3),seed = 12345)
 
       // Set up 3-fold cross validation
       val crossval = new CrossValidator().setEstimator(pipeline)
@@ -163,12 +170,18 @@ object DecisionTreeCredit {
       val bestModel = cvModel.bestModel
 
       val predictions = bestModel.transform(test)
-      val accuracy = evaluator.evaluate(predictions)
-      evaluator.explainParams()
-      val result = predictions.select("label", "prediction", "probability")
-      result.show(10)
-      println(accuracy)
+      val predictionAndLabels = predictions//select("prediction","label")
+        .selectExpr("cast(prediction as double) prediction","cast(label as double) label")
+        // .withColumn("label", $"label" cast "Double")
+        .rdd
+        .map(row => (row.getDouble(0), row.getDouble(1)))
 
+      val metrics = new MulticlassMetrics(predictionAndLabels)
+
+      println("Matrice de confusion")
+      println(metrics.confusionMatrix)
+      println("---------------------")
+      println("Précision = " + metrics.precision)
     }
 }
 

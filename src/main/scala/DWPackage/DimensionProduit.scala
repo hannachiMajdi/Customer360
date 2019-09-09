@@ -9,17 +9,17 @@ object DimensionProduit {
 
   def main(args: Array[String]): Unit = {
     var conf = new SparkConf()
-      .setAppName("ToGraphMigration")
+      .setAppName("DimProduit")
       .setMaster("local[*]")
-      /*.set("es.index.auto.create", "true")
+      .set("es.index.auto.create", "true")
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
-      .set("spark.es.net.ssl","true")
-      .set("spark.es.nodes",  "aed8cb3e21e0419d81fe0e71bcff6ed8.eu-central-1.aws.cloud.es.io")
-      .set("spark.es.port", "9243")
-      .set("spark.es.net.http.auth.user","elastic")
-      .set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
-      //.set("spark.es.resource", indexName)
-      .set("spark.es.nodes.wan.only", "true")*/
+      //.set("spark.es.net.ssl","true")
+      .set("spark.es.nodes",  "127.0.0.1")
+      .set("spark.es.port", "9200")
+    //.set("spark.es.net.http.auth.user","elastic")
+    //.set("spark.es.net.http.auth.pass", "jmYf8ihvwQBMbF9S7HRdfouf")
+    //.set("spark.es.resource", indexName)
+    // .set("spark.es.nodes.wan.only", "true")
 
     val sc = new SparkContext(conf)
 
@@ -34,8 +34,8 @@ object DimensionProduit {
       .option("header", "true")
       .option("delimiter", ";")
       .option("inferSchema", "true")
-      .load("src\\SourceData\\CLI_GCO_GeneriquesComptes.csv")
-
+      //.load("src\\SourceData\\CLI_GCO_GeneriquesComptes.csv")
+      .load("hdfs://localhost:9000/DataLake/CoreBanking/Comptes/*.csv")
       .withColumn("CodProduit",regexp_replace($"GCO_CodProduit" , lit("NULL"), lit("cbcc" )))
       .withColumn("LibProduit",regexp_replace($"GCO_LibProduit" , lit("NULL"), lit("carte bancaire Compte courant" )))
       .select(
@@ -48,13 +48,15 @@ object DimensionProduit {
 
 
     DataDF
-      //.saveToEs("dw_dimension_produit/produit")
-      .repartition(1)
+      .saveToEs("dw_dimension_produit")
+      /*.repartition(1)
       .write
       .format("com.databricks.spark.csv")
       .option("header", "true")
       .option("delimiter", ";")
       .save("src\\DW\\dw_dimension_produit")
+
+       */
 
   }
 }
